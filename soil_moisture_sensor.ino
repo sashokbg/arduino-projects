@@ -39,7 +39,7 @@ byte level = 1;
 byte previousLevel = 0;
 volatile boolean buttonPressed = false;
 boolean isLevelDisplayed = false;
-unsigned int lastInterruptTime = 0;
+unsigned long lastInterruptTime = 0;
 
 void handleButtonPress() {
   if(millis() - lastInterruptTime < BUTTON_DISABLE_DURATION) {
