@@ -51,11 +51,7 @@ void handleButtonPress() {
   Serial.println("Button Pressed");
   buttonPressed = true;
 
-  if (turnOffDisplayTask->isDone) {
-    turnOffDisplayTask = scheduleTask(DISPLAY_OFF_DELAY, &turnOffDisplay);
-  } else {
-    turnOffDisplayTask = resetTask(turnOffDisplayTask);
-  }
+  scheduleTurnOffDisplay();
   
   scheduleTask(SENSOR_OFF_DELAY, &turnOffSensor);
 }
@@ -80,6 +76,8 @@ void readDisplayFrequency() {
   int value = analogRead(1);
   
   if (abs(previousDisplayFrequency - value) > 20) {
+    scheduleTurnOffDisplay();
+    
     level = value/100;
 
     if(isLevelDisplayed){
@@ -99,6 +97,14 @@ int readMoisture(){
   moisture = moisture - offset;
 
   return moisture;
+}
+
+void scheduleTurnOffDisplay(){
+  if (turnOffDisplayTask->isDone) {
+    turnOffDisplayTask = scheduleTask(DISPLAY_OFF_DELAY, &turnOffDisplay);
+  } else {
+    turnOffDisplayTask = resetTask(turnOffDisplayTask);
+  }
 }
 
 void turnOffDisplay() {
