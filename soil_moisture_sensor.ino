@@ -4,9 +4,9 @@
 
 #define OLED_ADDR   0x3C
 
-#define SCREEN_WIDTH 128 // OLED display width, in pixels
-#define SCREEN_HEIGHT 64 // OLED display height, in pixels
-#define OLED_RESET    -1 // Reset pin # (or -1 if sharing Arduino reset pin)
+#define SCREEN_WIDTH        128 // OLED display width, in pixels
+#define SCREEN_HEIGHT       64  // OLED display height, in pixels
+#define OLED_RESET          -1  // Reset pin # (or -1 if sharing Arduino reset pin)
 
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
@@ -35,8 +35,8 @@ void setup() {
 int previousMoisture = 0;
 int previousDisplayFrequency = 0;
 byte offset = 155;
-int level = 1;
-int previousLevel = 0;
+byte level = 1;
+byte previousLevel = 0;
 volatile boolean buttonPressed = false;
 boolean isLevelDisplayed = false;
 unsigned int lastInterruptTime = 0;
@@ -118,7 +118,6 @@ void turnOffSensor() {
 
 void turnOnSensor(){
   digitalWrite(SENSOR_CONTROL_PIN, HIGH);
-  delay(SENSOR_DELAY_READ);
 }
 
 void changeDisplayLevel() {
