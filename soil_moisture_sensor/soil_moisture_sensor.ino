@@ -21,7 +21,7 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 struct Task * turnOffDisplayTask = (Task *)malloc(sizeof(Task));
 
 void setup() {
-  attachInterrupt(digitalPinToInterrupt(BUTTON_INTERRUPT_PIN), &handleButtonPress, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(BUTTON_INTERRUPT_PIN), &button1Interrupt, CHANGE);
 
   turnOffDisplayTask->isDone = true;
   turnOffDisplayTask->time = 0;
@@ -41,7 +41,7 @@ volatile boolean buttonPressed = false;
 boolean isLevelDisplayed = false;
 unsigned long lastInterruptTime = 0;
 
-void handleButtonPress() {
+void button1Interrupt() {
   if(millis() - lastInterruptTime < BUTTON_DISABLE_DURATION) {
     return;
   }
@@ -57,8 +57,13 @@ void handleButtonPress() {
 }
 
 void loop() {
-  readDisplayFrequency();
+  handleKnob();
+  handleButton1();
   
+  executeTasks();
+}
+
+void handleButton1(){
   if(buttonPressed){
     turnOnSensor();
     float moisture = readMoisture();
@@ -68,11 +73,9 @@ void loop() {
   
     buttonPressed = false;
   }
-
-  executeTasks();
 }
 
-void readDisplayFrequency() {
+void handleKnob() {
   int value = analogRead(1);
   
   if (abs(previousDisplayFrequency - value) > 20) {
@@ -93,6 +96,7 @@ void readDisplayFrequency() {
 
 int readMoisture(){
   float moisture = analogRead(SENSOR_READ_PIN);
+  Serial.print(F("Moisture level - "));
   Serial.println(moisture);
   moisture = moisture - offset;
 
@@ -118,6 +122,7 @@ void turnOffSensor() {
 
 void turnOnSensor(){
   digitalWrite(SENSOR_CONTROL_PIN, HIGH);
+  delay(20);
 }
 
 void changeDisplayLevel() {
@@ -179,4 +184,3 @@ void displayMoisture(int moisture){
 
   display.display();
 }
-
