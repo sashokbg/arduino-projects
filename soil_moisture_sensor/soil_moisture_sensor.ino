@@ -16,21 +16,10 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 #define SENSOR_CONTROL_PIN        8
 #define SENSOR_READ_PIN           0
 #define BUTTON_INTERRUPT_PIN      3
-#define BUTTON_DISABLE_DURATION   2000
+#define BUTTON_DISABLE_DURATION   500
 
 struct Task * turnOffDisplayTask = (Task *)malloc(sizeof(Task));
-
-void setup() {
-  attachInterrupt(digitalPinToInterrupt(BUTTON_INTERRUPT_PIN), &button1Interrupt, CHANGE);
-
-  turnOffDisplayTask->isDone = true;
-  turnOffDisplayTask->time = 0;
-  
-  Serial.begin(9600);
-  display.begin(SSD1306_SWITCHCAPVCC, OLED_ADDR);
-  display.clearDisplay();
-  display.display();
-}
+struct Task * doubleClickTimeout = (Task *)malloc(sizeof(Task));
 
 int previousMoisture = 0;
 int previousDisplayFrequency = 0;
@@ -38,8 +27,26 @@ byte offset = 155;
 byte level = 1;
 byte previousLevel = 0;
 volatile boolean buttonPressed = false;
+volatile boolean buttonDoublePressed = false;
 boolean isLevelDisplayed = false;
 unsigned long lastInterruptTime = 0;
+
+void setup() {
+  attachInterrupt(digitalPinToInterrupt(BUTTON_INTERRUPT_PIN), &button1Interrupt, CHANGE);
+
+  turnOffDisplayTask->isDone = true;
+  turnOffDisplayTask->time = 0;
+
+  doubleClickTimeout->isDone = true;
+  doubleClickTimeout->time = 0;
+  
+  Serial.begin(9600);
+  display.begin(SSD1306_SWITCHCAPVCC, OLED_ADDR);
+  display.clearDisplay();
+  display.display();
+
+  previousDisplayFrequency = analogRead(1);
+}
 
 void button1Interrupt() {
   if(millis() - lastInterruptTime < BUTTON_DISABLE_DURATION) {
@@ -49,21 +56,38 @@ void button1Interrupt() {
   lastInterruptTime = millis();
   
   Serial.println("Button Pressed");
+
+  if(!doubleClickTimeout->isDone){
+    buttonDoublePressed = true;
+  }
+  
   buttonPressed = true;
 
   scheduleTurnOffDisplay();
+
+  doubleClickTimeout = scheduleTask(1000, NULL);
   
   scheduleTask(SENSOR_OFF_DELAY, &turnOffSensor);
 }
 
 void loop() {
   handleKnob();
-  handleButton1();
+  handleDoubleButton();
+  handleSingleButton();
   
   executeTasks();
 }
 
-void handleButton1(){
+void handleDoubleButton(){
+  if(buttonDoublePressed){
+    Serial.println(F("Button double pressed !"));
+    buttonDoublePressed = false;
+    buttonPressed = false;
+    displaySettings();
+  }
+}
+
+void handleSingleButton(){
   if(buttonPressed){
     turnOnSensor();
     float moisture = readMoisture();
@@ -78,10 +102,10 @@ void handleButton1(){
 void handleKnob() {
   int value = analogRead(1);
   
-  if (abs(previousDisplayFrequency - value) > 20) {
+  if (abs(previousDisplayFrequency - value) > 80) {
     scheduleTurnOffDisplay();
     
-    level = value/100;
+    level = (value+40)/100;
 
     if(isLevelDisplayed){
       changeDisplayLevel();
@@ -155,6 +179,28 @@ void displayLevel() {
   display.setTextSize(2);
   display.setCursor(27,30);
   
+  display.print(level);
+  display.print(F(" / 10"));
+
+  display.display();
+}
+
+void displaySettings() {
+  isLevelDisplayed = false;
+  display.ssd1306_command(SSD1306_DISPLAYON);
+  display.clearDisplay();
+  display.display();
+
+  display.setTextSize(1);
+  display.setTextColor(WHITE);
+  
+  display.setCursor(0,0);
+  display.print(F("Settings :"));
+
+  display.setCursor(0,16);
+  display.print(F("Sensitivity :"));
+
+  display.setCursor(0,24);
   display.print(level);
   display.print(F(" / 10"));
 
