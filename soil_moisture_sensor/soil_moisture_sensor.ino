@@ -30,6 +30,7 @@ volatile boolean buttonPressed = false;
 volatile boolean buttonDoublePressed = false;
 boolean isLevelDisplayed = false;
 unsigned long lastInterruptTime = 0;
+float moisture = 0;
 
 void setup() {
   attachInterrupt(digitalPinToInterrupt(BUTTON_INTERRUPT_PIN), &button1Interrupt, CHANGE);
@@ -46,6 +47,8 @@ void setup() {
   display.display();
 
   previousDisplayFrequency = analogRead(1);
+
+  scheduleTask(1000, &readMoisture, true);
 }
 
 void button1Interrupt() {
@@ -65,9 +68,9 @@ void button1Interrupt() {
 
   scheduleTurnOffDisplay();
 
-  doubleClickTimeout = scheduleTask(1000, NULL);
+  doubleClickTimeout = scheduleTask(1000, NULL, false);
   
-  scheduleTask(SENSOR_OFF_DELAY, &turnOffSensor);
+  scheduleTask(SENSOR_OFF_DELAY, &turnOffSensor, false);
 }
 
 void loop() {
@@ -90,7 +93,7 @@ void handleDoubleButton(){
 void handleSingleButton(){
   if(buttonPressed){
     turnOnSensor();
-    float moisture = readMoisture();
+    readMoisture();
 
     displayMoisture(moisture);
     previousMoisture = moisture;
@@ -118,18 +121,18 @@ void handleKnob() {
   }
 }
 
-int readMoisture(){
-  float moisture = analogRead(SENSOR_READ_PIN);
+void readMoisture(){
+  turnOnSensor();
+  float currentMoisture = analogRead(SENSOR_READ_PIN);
   Serial.print(F("Moisture level - "));
-  Serial.println(moisture);
-  moisture = moisture - offset;
-
-  return moisture;
+  Serial.println(currentMoisture);
+  moisture = currentMoisture - offset;
+  turnOffSensor();
 }
 
 void scheduleTurnOffDisplay(){
   if (turnOffDisplayTask->isDone) {
-    turnOffDisplayTask = scheduleTask(DISPLAY_OFF_DELAY, &turnOffDisplay);
+    turnOffDisplayTask = scheduleTask(DISPLAY_OFF_DELAY, &turnOffDisplay, false);
   } else {
     turnOffDisplayTask = resetTask(turnOffDisplayTask);
   }

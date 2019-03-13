@@ -3,11 +3,13 @@
 struct Task * scedueled_tasks[MAX_ELEMENTS];
 byte numberOfElements = 0;
 
-Task * scheduleTask(unsigned long inTime, callbackFunction callback){
+Task * scheduleTask(unsigned long inTime, callbackFunction callback, boolean isRepeating){
   struct Task *newTask = (Task *)malloc(sizeof(Task));
   newTask->callback = callback;
   newTask->time = millis() + inTime;
+  newTask->duration = inTime;
   newTask->isDone = false;
+  newTask->isRepeating = isRepeating;
 
   //Serial.print("** Scheduled new task at ");
   //Serial.println(newTask->time);
@@ -25,7 +27,7 @@ Task * scheduleTask(unsigned long inTime, callbackFunction callback){
 Task * resetTask(Task *task) {
   //Serial.print("** Reseting task ");
   //Serial.println(task->time);
-  task->time = millis() + 5000;
+  task->time = millis() + task->duration;
   task->isDone = false;
 
   return task;
@@ -44,7 +46,12 @@ void executeTasks() {
         currentTask->callback();  
       }
 
-      free(currentTask);
+      if(currentTask->isRepeating) {
+        Serial.println("** Reseting repeating task");
+        resetTask(currentTask);
+      } else {
+        free(currentTask); 
+      }
     }
    }
 }
